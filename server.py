@@ -3,6 +3,7 @@ import socket
 import sys
 import signal
 import argparse
+import ssl
 
 from utils import *
 
@@ -16,10 +17,18 @@ class ChatServer(object):
         self.clients = 0
         self.clientmap = {}
         self.outputs = []  # list output sockets
+
+        self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        self.context.load_cert_chain(certfile="cert.pem", keyfile="cert.pem")
+        self.context.load_verify_locations('cert.pem')
+        self.context.set_ciphers('AES128-SHA')
+
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind((SERVER_HOST, port))
-        self.server.listen(backlog)
+        self.server.listen(backlog)                
+        self.server = self.context.wrap_socket(self.server, server_side=True)
+
         # Catch keyboard interrupts
         signal.signal(signal.SIGINT, self.sighandler)
 
@@ -42,8 +51,13 @@ class ChatServer(object):
         return '@'.join((name, host))
 
     def run(self):
-        inputs = [self.server, sys.stdin]
+        # inputs = [self.server, sys.stdin]
+        inputs = [self.server]
         self.outputs = []
+
+        self.grouChats = [GroupChat]
+
+
         running = True
         while running:
             try:
@@ -57,6 +71,7 @@ class ChatServer(object):
                 if sock == self.server:
                     # handle the server socket
                     client, address = self.server.accept()
+
                     print(
                         f'Chat server: got connection {client.fileno()} from {address}')
                     # Read the login name
@@ -74,19 +89,37 @@ class ChatServer(object):
                         send(output, msg)
                     self.outputs.append(client)
 
-                elif sock == sys.stdin:
-                    # didn't test sys.stdin on windows system
-                    # handle standard input
-                    cmd = sys.stdin.readline().strip()
-                    if cmd == 'list':
-                        print(self.clientmap.values())
-                    elif cmd == 'quit':
-                        running = False
+                # elif sock == sys.stdin:
+                #     # didn't test sys.stdin on windows system
+                #     # handle standard input
+                #     cmd = sys.stdin.readline().strip()
+                #     if cmd == 'list':
+                #         print(self.clientmap.values())
+                #     elif cmd == 'quit':
+                #         running = False
                 else:
                     # handle all other sockets
                     try:
                         data = receive(sock)
                         if data:
+                            #check first 
+                            indicator = data[0]
+                            if indicator == 0:
+                                #send normal message to users current message server
+                                break
+                            elif indicator == 1:
+                                #user returning to connected client section
+                                break
+                            elif indicator == 2:
+                                #user joining chat
+                                break
+                            elif indicator == 3:
+                                #user inviting other user
+                                break
+                            elif indicator == 4:
+                                #new user
+                                break
+
                             # Send as new client's message...
                             msg = f'\n#[{self.get_client_name(sock)}]>> {data}'
 
@@ -126,3 +159,30 @@ if __name__ == "__main__":
 
     server = ChatServer(port)
     server.run()
+
+
+class GroupChat():
+    def __init__(self, user):
+        self.owner = user
+        self.members = []
+        self.members.append(user)
+    
+    def addUser(self, user):
+        self.members.append(user)
+
+    def removeUser(self, user):
+        self.members.remove(user)
+
+class User():
+    def __init__(self, name, sock):
+        self.userName = name
+        self.sock = sock
+        self.chat = None
+    
+    def joinChat(self, chat):
+        self.chat = chat
+    
+    def leaveGroup(self):
+        self.chat = None
+
+    
