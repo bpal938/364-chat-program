@@ -76,19 +76,6 @@ class Client(QWidget):
 
 
 
-    
-
-
-    def connectServer(self):
-        client = ChatClient(name = 'name', port = 80, host = SERVER_HOST )
-        client.run()
-        #if client.connected:
-        self.connectionWindow()
-    
-    def close(self):
-        sys.exit(app.exec_())
-
-
 
 
 
@@ -100,30 +87,30 @@ def get_and_send(client):
             send(client.sock, data)
 
 
-class ChatClient(QThread):
+class ChatClient():
     """ A command line chat client using select """
 
-    def __init__(self, name, port, host):
-        self.name = name
+    def __init__(self):
+        self.name = input('Welcome to Chat Application\nPlease enter your name: ')
         self.connected = False
-        #self.host = host
-        #self.port = port
+        self.host = input('Please enter the server ip: ')
+        self.port = int(input('Please enter the port: '))
 
-        self.host = SERVER_HOST
-        self.port = 80
+        #self.host = SERVER_HOST
+        #self.port = 80
 
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 
         # Initial prompt
-        self.prompt = f'[{name}@{socket.gethostname()}]> '
+        self.prompt = f'[{self.name}@{socket.gethostname()}]> '
 
         # Connect to server at port
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock = self.context.wrap_socket(
-                self.sock, server_hostname=host)
+                self.sock, server_hostname=self.host)
 
-            self.sock.connect((host, self.port))
+            self.sock.connect((self.host, self.port))
             print(f'Now connected to chat server@ port {self.port}')
             self.connected = True
 
@@ -180,6 +167,5 @@ class ChatClient(QThread):
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = Client()
-    sys.exit(app.exec_())
+    client = ChatClient()
+    client.run()
