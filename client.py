@@ -6,8 +6,9 @@ import signal
 import argparse
 import threading
 import ssl
+from PyQt5.QtCore import QThread
 from utils import *
-from PyQt5.QtWidgets import QApplication, QSpacerItem, QSizePolicy, QHBoxLayout, QPushButton, QSpacerItem, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QTextEdit
+from PyQt5.QtWidgets import QApplication, QComboBox, QSpacerItem, QSizePolicy, QHBoxLayout, QPushButton, QSpacerItem, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QTextEdit
 
 SERVER_HOST = 'localhost'
 
@@ -43,7 +44,7 @@ class Client(QWidget):
         grid.addWidget(self.username, 3, 1)
 
         connectButton = QPushButton('Connect')
-        connectButton.pressed.connect(self.connectNewThread)
+        connectButton.pressed.connect(self.connectServer)
         
         cancelButton = QPushButton('Cancel')
         cancelButton.pressed.connect(self.close)
@@ -54,15 +55,35 @@ class Client(QWidget):
         self.setWindowTitle('Connect to a server')
         #self.setGeometry() 
         self.show()
+
+    def connectionWindow(self):
+        grid = QGridLayout ()
+
+        grid.addWidget(QLabel('Connected Clients'), 0, 0)
+        grid.addWidget(QLabel('Chat Rooms'), 2, 0)
+        grid.addWidget(QLabel('Connected Clients'), 0, 0)
+
+        grid.addWidget(QComboBox(), 1, 0)
+        grid.addWidget(QComboBox(), 3, 0)
+
+        grid.addWidget(QPushButton('1 on 1 chat'), 1, 1)
+        grid.addWidget(QPushButton('Create'), 3, 1)
+        grid.addWidget(QPushButton('Join'), 4, 1)
+        grid.addWidget(QPushButton('Close'), 5, 1)
+
+        self.setLayout(grid)
+        self.show()
+
+
+
     
-    def connectNewThread(self):
-        threading.Thread(target = self.connectServer)
+
 
     def connectServer(self):
-        #client = ChatClient(name = self.username.text, port = self.serverPort.text, host = self.serverIp.text)
         client = ChatClient(name = 'name', port = 80, host = SERVER_HOST )
-        #threading.Thread(client.run())
         client.run()
+        #if client.connected:
+        self.connectionWindow()
     
     def close(self):
         sys.exit(app.exec_())
@@ -79,7 +100,7 @@ def get_and_send(client):
             send(client.sock, data)
 
 
-class ChatClient():
+class ChatClient(QThread):
     """ A command line chat client using select """
 
     def __init__(self, name, port, host):
