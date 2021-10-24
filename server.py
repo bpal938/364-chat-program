@@ -112,87 +112,8 @@ class ChatServer(object):
                             #check first 
                             indicator = data.indicator
 
-                            #send normal message to users in current group chat
-                            if indicator == 0:
-                                userGroup = None
-                                #find the group chat that user is in
-                                for group in self.groupChats:
-                                    if group.id == data.group.id:
-                                        userGroup = group
-                                #if there is at least one member
-                                if len(userGroup) != 0:
-                                    #create message (0 as indicator indicates a normal message)
-                                    msg = f'\n#[{self.get_client_name(sock)}]>> {data.message}'
-                                    data = Data(0).addMessage(msg)
-                                    #send to each member
-                                    for sendee in userGroup.members:
-                                        send(sendee, data)
-
-                            #user returning to connected client section
-                            elif indicator == 1:
-                                if data.group != None:
-                                    msg = f'\n(Now hung up: Client from {self.get_client_name(sock)})'
-                                    #create left the chat message for members (1 indicates a user left the chat)
-                                    leaveData = Data(1).addMessage(msg).addRemovedMember(self.get_client_name)
-                                    #find the group chat that user was in
-                                    for group in self.groupChats:
-                                        if group.id == data.group.id:
-                                            #remove user from this group chat
-                                            group.members.remove(sock)
-                                            #if user was owner of group
-                                            if group.owner == sock:
-                                                #make another user host
-                                                group.owner = group.members[0]
-                                                #alert all users in group of this change
-                                                leaveData.addNewHost(group.members[0], self.get_client_name(group.members[0]))
-                                            #send leave data to other members of the group
-                                            for member in group.members:
-                                                send(member, leaveData)
-                                #create data with list of people and groups (2 indicates sending of all data)
-                                data = Data(2).addUserList(self.clientmap).addGroups(self.groupChats)
-                                #send back to client
-                                send(sock, data)
-
-                            #user joining chat
-                            elif indicator == 2:
-                                #find group that user is joining
-                                for group in self.groupChats:
-                                        if group.id == data.group.id:
-                                            #create join message to send to members of the group (3 indicates new member of group)
-                                            msg = f'\n(Connected: New client ({self.clients}) from {self.get_client_name(client)})'
-                                            joinData = Data(3).addMessage(msg).addMember(self.get_client_name)
-                                            for member in group.members:
-                                                send(member, joinData)
-                                            group.addUser(sock)
-
-                            #user inviting other user
-                            elif indicator == 3:
-                                #user inviting other user
-                                invited = data.member
-                                #invite contains the group they are being invited to (indicator 4)
-                                invite = Data(4).addGroup(data.group)
-                                send(invited, invite)
-
-                            #new user
-                            elif indicator == 4:
-                                #create data with list of people and groups
-                                data = Data(2).addUserList(self.clientmap).addGroups(self.groupChats)
-                                #send back to client
-                                send(sock, data)
-                                #create message containing info about new user (indicator 5)
-                                msg = Data(5).addUserList([User(self.get_client_name, sock)])
-                                for user in self.users:
-                                    send(msg, msg)
-
-                            #sending normal message to users current one on one chat
-                            elif indicator == 5:
-                                otherMember = data.member 
-                                msg = f'\n#[{self.get_client_name(sock)}]>> {data.message}'
-                                data = Data(6).addMessage(msg)
-                                send(otherMember, data)
-
                             #creating a new group
-                            elif indicator == 6:
+                            if indicator == 6:
                                 name = data.message
                                 group = GroupChat(name)
                                 group.addUser(self.get_client_name(sock))

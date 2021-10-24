@@ -6,9 +6,7 @@ import signal
 import argparse
 import threading
 import ssl
-from PyQt5.QtCore import QThread, flush
 from utils import *
-from PyQt5.QtWidgets import QApplication, QComboBox, QSpacerItem, QSizePolicy, QHBoxLayout, QPushButton, QSpacerItem, QVBoxLayout, QWidget, QGridLayout, QLabel, QLineEdit, QTextEdit
 
 SERVER_HOST = 'localhost'
 
@@ -19,72 +17,6 @@ group = None
 users = None
 user = None
 invites = []
-
-class Client(QWidget):
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-
-        grid = QGridLayout()
-        vbox = QVBoxLayout()
-        hbox = QHBoxLayout()
-        self.setLayout(vbox)
-
-        vbox.addLayout(grid)
-        vbox.addLayout(hbox)
-
-
-        grid.addWidget(QLabel('IP Address'), 0, 0)
-        grid.addWidget(QLabel('Port'), 1, 0)
-        grid.addWidget(QLabel('Nick Name'), 3, 0)
-
-        self.serverIp = QLineEdit()
-        self.serverPort = QLineEdit()
-        self.username = QLineEdit()
-
-        grid.addWidget(self.serverIp, 0, 1)
-        grid.addWidget(self.serverPort, 1, 1)
-        grid.addWidget(self.username, 3, 1)
-
-        connectButton = QPushButton('Connect')
-        connectButton.pressed.connect(self.connectServer)
-        
-        cancelButton = QPushButton('Cancel')
-        cancelButton.pressed.connect(self.close)
-
-        hbox.addWidget(connectButton)
-        hbox.addWidget(cancelButton)
-
-        self.setWindowTitle('Connect to a server')
-        #self.setGeometry() 
-        self.show()
-
-    def connectionWindow(self):
-        grid = QGridLayout ()
-
-        grid.addWidget(QLabel('Connected Clients'), 0, 0)
-        grid.addWidget(QLabel('Chat Rooms'), 2, 0)
-        grid.addWidget(QLabel('Connected Clients'), 0, 0)
-
-        grid.addWidget(QComboBox(), 1, 0)
-        grid.addWidget(QComboBox(), 3, 0)
-
-        grid.addWidget(QPushButton('1 on 1 chat'), 1, 1)
-        grid.addWidget(QPushButton('Create'), 3, 1)
-        grid.addWidget(QPushButton('Join'), 4, 1)
-        grid.addWidget(QPushButton('Close'), 5, 1)
-
-        self.setLayout(grid)
-        self.show()
-
-
-
-
-
-
 
 def get_and_send(client):
     while not stop_thread:
