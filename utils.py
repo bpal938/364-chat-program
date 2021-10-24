@@ -38,7 +38,7 @@ class Data():
         self.groupHost = [sock, name]
 
     def addGroups(self, groups):
-        self.group = groups
+        self.groups = groups
 
     def addMember(self, toAdd):
         self.member = toAdd
@@ -46,11 +46,15 @@ class Data():
     def addGroup(self, group):
         self.group = group
     
+class SockGroup():
+    def __init__(self, name):
+        self.socks = []
+        self.name = name
+    
 class GroupChat():
-    def __init__(self, user):
-        self.owner = user
+    def __init__(self,name):
         self.members = []
-        self.members.append(user)
+        self.name = name
     
     def addUser(self, user):
         self.members.append(user)

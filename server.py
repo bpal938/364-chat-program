@@ -17,6 +17,7 @@ class ChatServer(object):
         self.clients = 0
         self.clientmap = {}
         self.outputs = []  # list output sockets
+        
 
         self.context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
         self.context.load_cert_chain(certfile="cert.pem", keyfile="cert.pem")
@@ -62,6 +63,7 @@ class ChatServer(object):
 
         self.users = []
         self.groupChats = []
+        self.groupSocks = []
 
 
         running = True
@@ -87,6 +89,7 @@ class ChatServer(object):
                     self.clients += 1
                     send(client, f'CLIENT: {str(address[0])}')
                     inputs.append(client)
+                    self.users.append(cname)
 
                     self.clientmap[client] = (address, cname, [])
                     
@@ -190,8 +193,106 @@ class ChatServer(object):
 
                             #creating a new group
                             elif indicator == 6:
-                                group = GroupChat(sock)
+                                name = data.message
+                                group = GroupChat(name)
+                                group.addUser(self.get_client_name(sock))
                                 self.groupChats.append(group)
+                                sockGroup = SockGroup(name)
+                                sockGroup.socks.append(sock)
+                                self.groupSocks.append(sockGroup)
+
+                            #request for group info
+                            elif indicator == 7:
+                                print('got group request')
+                                toSend = Data(7)
+                                toSend.addGroups(self.groupChats)
+                                send(sock, toSend)
+                            
+                            #request for user info
+                            elif indicator == 8:
+                                print('got user request')
+                                toSend = Data(8)
+                                toSend.addUserList(self.users)
+                                send(sock, toSend)
+                            
+                            #join group chat
+                            elif indicator == 9:
+                                groupName = data.group.name
+                                for groupChat in self.groupChats:
+                                    if groupChat.name == groupName:
+                                        groupChat.addUser(self.get_client_name(sock))
+                                for sockGroup in self.groupSocks:
+                                    if sockGroup.name == groupName:
+                                        msg = self.get_client_name(sock) + " joined the group"
+                                        toSend = Data(20)
+                                        toSend.addMessage(msg)
+                                        for socket in sockGroup.socks:
+                                            send(socket, toSend)
+                                        sockGroup.socks.append(sock)
+
+                                print('user joining group', data.group.name)
+
+                            #message to one on one chat
+                            elif indicator == 10:
+                                chattingMember = data.member
+                                toSend = Data(11)
+                                msg = self.get_client_name(sock) + ' >> ' + data.message
+                                toSend.addMessage(msg)
+                                for socket in self.outputs:
+                                    if self.get_client_name(socket).split('@')[0] == chattingMember:
+                                        send(socket, toSend)
+
+
+                            #user leaving group
+                            elif indicator == 11:
+                                groupName = data.group.name
+                                for groupChat in self.groupChats:
+                                    if groupChat.name == groupName:
+                                        groupChat.members.remove(self.get_client_name(sock))
+                                        if len(groupChat.members) == 0:
+                                            self.groupChats.remove(groupChat)
+                                for sockGroup in self.groupSocks:
+                                    if sockGroup.name == groupName:
+                                        msg = self.get_client_name(sock) + " left the group"
+                                        toSend = Data(20)
+                                        toSend.addMessage(msg)
+                                        for socket in sockGroup.socks:
+                                            if socket != sock:
+                                                send(socket, toSend)
+                                        sockGroup.socks.remove(sock)
+                                        if len(sockGroup.socks) == 0:
+                                            self.groupSocks.remove(sockGroup)
+                                            
+                                print('user leaving group', data.group.name)
+
+                            #message to group
+                            elif indicator == 12:
+                                msg = self.get_client_name(sock) + ' >> ' + data.message
+                                groupName = data.group.name
+                                for sockGroup in self.groupSocks:
+                                    if sockGroup.name == groupName:
+                                        toSend = Data(20)
+                                        toSend.addMessage(msg)
+                                        for socket in sockGroup.socks:
+                                            if socket != sock:
+                                                send(socket, toSend)
+
+                            #request for all members
+                            elif indicator == 13:
+                                toSend = Data(9)
+                                toSend.addUserList(self.users)
+                                send(sock, toSend)
+
+                            #invite sent to user
+                            elif indicator == 14:
+                                invitedUser = data.member
+                                toSend = Data(10)
+                                toSend.addGroup(data.group)
+                                for socket in self.outputs:
+                                    if self.get_client_name(socket).split('@')[0] == invitedUser:
+                                        send(socket, toSend)
+
+
 
                             
                         else:
